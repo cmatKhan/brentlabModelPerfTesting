@@ -3,6 +3,7 @@
 
 <!-- badges: start -->
   [![Codecov test coverage](https://codecov.io/gh/cmatKhan/brentlabModelPerfTesting/branch/main/graph/badge.svg)](https://app.codecov.io/gh/cmatKhan/brentlabModelPerfTesting?branch=main)
+[![R-CMD-check](https://github.com/cmatKhan/brentlabModelPerfTesting/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/cmatKhan/brentlabModelPerfTesting/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
 The goal of brentlabModelPerfTesting is to ...
