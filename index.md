@@ -31,13 +31,13 @@ work on all systems.
 ## user
 
 ```{sh}
-remotes::install_github('https://github.com/cmatKhan/brentlabXGBoost')
+remotes::install_github('https://github.com/cmatKhan/brentlabModelPerfTesting')
 ```
 
 ## developer
 
 ```{sh}
-git clone https://github.com/cmatKhan/brentlabXGBoost
+git clone https://github.com/cmatKhan/brentlabModelPerfTesting
 ```
 
 ## docker and singularity

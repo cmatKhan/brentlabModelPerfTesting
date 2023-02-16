@@ -14,7 +14,12 @@ RUN  apt-get update && \
 	    build-essential \
 	    libssl-dev \
 	    libxml2-dev \
-      libcurl4-openssl-dev
+      libcurl4-openssl-dev \
+      libfontconfig1-dev \
+      libharfbuzz-dev \
+      libfribidi-dev \
+      libtiff-dev
+
 
 # Clean up
 RUN apt-get autoremove -y

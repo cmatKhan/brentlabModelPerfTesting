@@ -2,8 +2,9 @@
 # brentlabModelPerfTesting
 
 <!-- badges: start -->
+  [![R-CMD-check](https://github.com/cmatKhan/brentlabModelPerfTesting/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/cmatKhan/brentlabModelPerfTesting/actions/workflows/R-CMD-check.yaml)
+  
   [![Codecov test coverage](https://codecov.io/gh/cmatKhan/brentlabModelPerfTesting/branch/main/graph/badge.svg)](https://app.codecov.io/gh/cmatKhan/brentlabModelPerfTesting?branch=main)
-[![R-CMD-check](https://github.com/cmatKhan/brentlabModelPerfTesting/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/cmatKhan/brentlabModelPerfTesting/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
 # Description
@@ -34,7 +35,7 @@ work on all systems.
 ## Using R
 
 ```{sh}
-remotes::install_github('https://github.com/cmatKhan/brentlabXGBoost')
+remotes::install_github('https://github.com/cmatKhan/brentlabModelPerfTesting')
 ```
 
 ## Docker and Singularity
@@ -57,9 +58,9 @@ to actually use the containers.
 # Install: Developer
 
 ```{sh}
-$ git clone https://github.com/cmatKhan/brentlabXGBoost
+$ git clone https://github.com/cmatKhan/brentlabModelPerfTesting
 
-$ cd brentlabXGBoost
+$ cd brentlabModelPerfTesting
 
 # open the project in Rstudio (ie, go to file --> open project ...), or 
 # launch R on the cmd line. Make sure you're in the project directory.

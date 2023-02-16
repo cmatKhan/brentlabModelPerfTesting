@@ -220,6 +220,11 @@ ENV RENV_VERSION 0.16.0
 RUN R -e "install.packages(c('remotes'), repos = c(CRAN = 'https://cran.wustl.edu'))"
 RUN R -e "remotes::install_github('rstudio/renv@${RENV_VERSION}')"
 
+# it would be a good idea to figure out what 
+# each of these do. My method of dealing with this 
+# is to reduce it, try installing, and then add 
+# packages to deal with errors. I don't adjust this 
+# as frequently as I should.
 RUN  apt-get update && \
      apt-get install -y --no-install-recommends \
       software-properties-common \
@@ -228,7 +233,12 @@ RUN  apt-get update && \
 	    build-essential \
 	    libssl-dev \
 	    libxml2-dev \
-      libcurl4-openssl-dev
+      libcurl4-openssl-dev \
+      libfontconfig1-dev \
+      libharfbuzz-dev \
+      libfribidi-dev \
+      libtiff-dev
+
 
 # Clean up
 RUN apt-get autoremove -y
@@ -245,6 +255,9 @@ COPY renv/settings.dcf renv/settings.dcf
 # and what you make your WORKDIR
 ENV R_LIBS /project/renv/library/R-4.2/x86_64-pc-linux-gnu
 
+# Using renv takes a really, really long time. I don't know 
+# renv terribly well, so it is possible that there are settings 
+# that could reduce the time it takes to install.
 RUN R -e "renv::restore()"
 
 WORKDIR /project/src
@@ -571,7 +584,7 @@ and choose when to merge it into `main`. It will keep your `main` branch
 "clean", meaning to the best of your ability, your `main` branch will work. 
 `dev` may, on the otherhand, be unstable as you develop. 
   - When you're ready to merge from `dev` to `main`, this will be the point 
-  at which you bump the [semantic versioning]() (you may choose to do this 
+  at which you bump the [semantic versioning](https://semver.org/) (you may choose to do this 
   throughout your `dev` branch developments -- lots of different methods here), 
   rebuild the container(s), and create a 'release' on github. There should be 
   an updated `CHANGELOG` that goes along with any version bump.
@@ -582,12 +595,13 @@ and choose when to merge it into `main`. It will keep your `main` branch
 
 # Writing code
 
-First, if you aren't writing tests along with your code, and especially if you 
-have any preconceived notions about what tests are, then get rid of them. 
-You're probably wrong.  
+First, if you aren't writing tests along with your code, then you are only 
+doing half of your job. If you have any preconceived notions about what tests 
+are that make you think that you shouldn't be writing tests, then you need to 
+get rid of those preconceived notions. They are also wrong.
 
-The point of tests is to create a reproducible debugging environment for you, 
-and others, as you develop the codebase beyond your first function. It allows 
+**The point of tests is to create a reproducible debugging environment for you, 
+and others, as you develop the codebase beyond your first function**. It allows 
 you, or another developer, to easily _at least_ call your function, set a 
 breakpoint at the first line, and then step through line by line so that 
 instead of relying on your (probably shitty) documentation, the developer 
@@ -668,7 +682,7 @@ test_that("prepare_data", {
   # handled this for you, so you don't see it in the actual specific test
   test_data = readRDS(
     system.file('testing_gene_data.rds',
-                package = 'brentlabXGBoost'))
+                package = 'brentlabModelPerfTesting'))
   
   # I haven't written anything in the prep_data function! This will fail 
   # until I do, which is a good thing.
@@ -805,7 +819,7 @@ By doing this process, I end up with a test that looks like this:
 test_that("prepare_data", {
   test_data = readRDS(
     system.file('testing_gene_data.rds',
-                package = 'brentlabXGBoost'))
+                package = 'brentlabModelPerfTesting'))
 
   suppressWarnings({prepped_data_subset = prep_data(test_data, 10)})
 
@@ -842,10 +856,10 @@ And a function that looks like this:
 #' @examples
 #'   test_data = readRDS(
 #'       system.file('testing_gene_data.rds',
-#'       package = 'brentlabXGBoost'))
+#'       package = 'brentlabModelPerfTesting'))
 #'   # note: suppressed warnings used here b/c the test data is too
 #'   # small to stratify. Typically, do not use supressWarnings.
-#'   suppressWarnings({prepped_data_subset = brentlabXGBoost::prep_data(test_data, 10)})
+#'   suppressWarnings({prepped_data_subset = brentlabModelPerfTesting::prep_data(test_data, 10)})
 #'
 #'   names(prepped_data_subset)
 #'
