@@ -2,7 +2,7 @@
 title: "Using_Package_Data"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Using_Package_Data}
+  %\VignetteIndexEntry{Using Package Data}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

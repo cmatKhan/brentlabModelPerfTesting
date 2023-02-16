@@ -2,7 +2,7 @@
 title: "performance_testing_xgboost_on_htcf"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{performance_testing_xgboost_on_htcf}
+  %\VignetteIndexEntry{HTCF Performance Testing: XGBoost}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

@@ -2,7 +2,7 @@
 title: "fully_featured_R_package_development"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{fully_featured_R_package_development}
+  %\VignetteIndexEntry{Fully Featured R Package Development}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
