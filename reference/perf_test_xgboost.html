@@ -108,7 +108,7 @@ models outside of caret.</p>
 <span class="r-in"><span><span class="co"># suppressWarnings only here b/c test data is too small</span></span></span>
 <span class="r-in"><span><span class="co"># and stratified split is turned off. In general, do not suppressWarnings</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/warning.html" class="external-link">suppressWarnings</a></span><span class="op">(</span><span class="op">{</span><span class="va">input_data</span> <span class="op">=</span> <span class="fu"><a href="prep_data.html">prep_data</a></span><span class="op">(</span><span class="va">test_data</span><span class="op">)</span><span class="op">}</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> INFO [2023-02-16 18:27:49] creating train test data with 19 predictor variables</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> INFO [2023-02-16 20:10:26] creating train test data with 19 predictor variables</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">param</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>  objective <span class="op">=</span> <span class="st">'reg:squarederror'</span>,</span></span>
@@ -121,7 +121,7 @@ models outside of caret.</p>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="fu">perf_test_xgboost</span><span class="op">(</span><span class="va">input_data</span><span class="op">$</span><span class="va">train</span>, <span class="va">input_data</span><span class="op">$</span><span class="va">test</span>, <span class="va">param</span>, <span class="fl">5</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    time_sec model_ram_mb total_mem_used_gb</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 0.5981064            1              0.16</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 0.5417812            1              0.16</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span></span></span>
 <span class="r-in"><span><span class="co"># using the gpu</span></span></span>

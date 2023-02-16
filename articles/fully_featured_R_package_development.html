@@ -334,6 +334,11 @@ ENV RENV_VERSION 0.16.0
 RUN R -e "install.packages(c('remotes'), repos = c(CRAN = 'https://cran.wustl.edu'))"
 RUN R -e "remotes::install_github('rstudio/renv@${RENV_VERSION}')"
 
+# it would be a good idea to figure out what 
+# each of these do. My method of dealing with this 
+# is to reduce it, try installing, and then add 
+# packages to deal with errors. I don't adjust this 
+# as frequently as I should.
 RUN  apt-get update &amp;&amp; \
      apt-get install -y --no-install-recommends \
       software-properties-common \
@@ -342,7 +347,12 @@ RUN  apt-get update &amp;&amp; \
         build-essential \
         libssl-dev \
         libxml2-dev \
-      libcurl4-openssl-dev
+      libcurl4-openssl-dev \
+      libfontconfig1-dev \
+      libharfbuzz-dev \
+      libfribidi-dev \
+      libtiff-dev
+
 
 # Clean up
 RUN apt-get autoremove -y
@@ -359,6 +369,9 @@ COPY renv/settings.dcf renv/settings.dcf
 # and what you make your WORKDIR
 ENV R_LIBS /project/renv/library/R-4.2/x86_64-pc-linux-gnu
 
+# Using renv takes a really, really long time. I don't know 
+# renv terribly well, so it is possible that there are settings 
+# that could reduce the time it takes to install.
 RUN R -e "renv::restore()"
 
 WORKDIR /project/src
@@ -717,11 +730,11 @@ your ability, your <code>main</code> branch will work. <code>dev</code>
 may, on the otherhand, be unstable as you develop.
 <ul>
 <li>When you’re ready to merge from <code>dev</code> to
-<code>main</code>, this will be the point at which you bump the <a href="">semantic versioning</a> (you may choose to do this throughout
-your <code>dev</code> branch developments – lots of different methods
-here), rebuild the container(s), and create a ‘release’ on github. There
-should be an updated <code>CHANGELOG</code> that goes along with any
-version bump.</li>
+<code>main</code>, this will be the point at which you bump the <a href="https://semver.org/" class="external-link">semantic versioning</a> (you may choose to do
+this throughout your <code>dev</code> branch developments – lots of
+different methods here), rebuild the container(s), and create a
+‘release’ on github. There should be an updated <code>CHANGELOG</code>
+that goes along with any version bump.</li>
 <li>If these instructions aren’t immediately clear and obvious, then you
 need to stop and go read documentation and watch youtube videos on
 <strong><em>BASIC</em></strong> git/github usage. This is a fundamental
@@ -734,16 +747,18 @@ skill in programming today, and has been for some time.</li>
 <div class="section level2">
 <h2 id="writing-code">Writing code<a class="anchor" aria-label="anchor" href="#writing-code"></a>
 </h2>
-<p>First, if you aren’t writing tests along with your code, and
-especially if you have any preconceived notions about what tests are,
-then get rid of them. You’re probably wrong.</p>
-<p>The point of tests is to create a reproducible debugging environment
-for you, and others, as you develop the codebase beyond your first
-function. It allows you, or another developer, to easily <em>at
-least</em> call your function, set a breakpoint at the first line, and
-then step through line by line so that instead of relying on your
-(probably shitty) documentation, the developer can actually see what the
-code explicitely does.</p>
+<p>First, if you aren’t writing tests along with your code, then you are
+only doing half of your job. If you have any preconceived notions about
+what tests are that make you think that you shouldn’t be writing tests,
+then you need to get rid of those preconceived notions. They are also
+wrong.</p>
+<p><strong>The point of tests is to create a reproducible debugging
+environment for you, and others, as you develop the codebase beyond your
+first function</strong>. It allows you, or another developer, to easily
+<em>at least</em> call your function, set a breakpoint at the first
+line, and then step through line by line so that instead of relying on
+your (probably shitty) documentation, the developer can actually see
+what the code explicitely does.</p>
 <p>The tests also serve as integration checks – when you add a new
 function, it <em>should not</em> break an old function. The tests don’t
 guarantee that this is true, but it is a good check to have even if you
@@ -829,7 +844,7 @@ else, in the test, I do this:</li>
 <span>  <span class="co"># handled this for you, so you don't see it in the actual specific test</span></span>
 <span>  <span class="va">test_data</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span></span>
 <span>    <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">'testing_gene_data.rds'</span>,</span>
-<span>                package <span class="op">=</span> <span class="st">'brentlabXGBoost'</span><span class="op">)</span><span class="op">)</span></span>
+<span>                package <span class="op">=</span> <span class="st">'brentlabModelPerfTesting'</span><span class="op">)</span><span class="op">)</span></span>
 <span>  </span>
 <span>  <span class="co"># I haven't written anything in the prep_data function! This will fail </span></span>
 <span>  <span class="co"># until I do, which is a good thing.</span></span>
@@ -970,7 +985,7 @@ for xgboost looks like:</p>
 <code class="sourceCode R"><span><span class="fu">test_that</span><span class="op">(</span><span class="st">"prepare_data"</span>, <span class="op">{</span></span>
 <span>  <span class="va">test_data</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span></span>
 <span>    <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">'testing_gene_data.rds'</span>,</span>
-<span>                package <span class="op">=</span> <span class="st">'brentlabXGBoost'</span><span class="op">)</span><span class="op">)</span></span>
+<span>                package <span class="op">=</span> <span class="st">'brentlabModelPerfTesting'</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/warning.html" class="external-link">suppressWarnings</a></span><span class="op">(</span><span class="op">{</span><span class="va">prepped_data_subset</span> <span class="op">=</span> <span class="fu"><a href="../reference/prep_data.html">prep_data</a></span><span class="op">(</span><span class="va">test_data</span>, <span class="fl">10</span><span class="op">)</span><span class="op">}</span><span class="op">)</span></span>
 <span></span>
@@ -1004,10 +1019,10 @@ for xgboost looks like:</p>
 <span><span class="co">#' @examples</span></span>
 <span><span class="co">#'   test_data = readRDS(</span></span>
 <span><span class="co">#'       system.file('testing_gene_data.rds',</span></span>
-<span><span class="co">#'       package = 'brentlabXGBoost'))</span></span>
+<span><span class="co">#'       package = 'brentlabModelPerfTesting'))</span></span>
 <span><span class="co">#'   # note: suppressed warnings used here b/c the test data is too</span></span>
 <span><span class="co">#'   # small to stratify. Typically, do not use supressWarnings.</span></span>
-<span><span class="co">#'   suppressWarnings({prepped_data_subset = brentlabXGBoost::prep_data(test_data, 10)})</span></span>
+<span><span class="co">#'   suppressWarnings({prepped_data_subset = brentlabModelPerfTesting::prep_data(test_data, 10)})</span></span>
 <span><span class="co">#'</span></span>
 <span><span class="co">#'   names(prepped_data_subset)</span></span>
 <span><span class="co">#'</span></span>
