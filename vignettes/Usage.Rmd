@@ -1,0 +1,488 @@
+---
+title: "Usage"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Usage}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>", 
+  eval = FALSE
+)
+```
+
+```{r setup}
+library(brentlabModelPerfTesting)
+```
+
+# Testing a Single Model
+
+__note__: interestingly, when R initially launches, it will use all available 
+CPUs. However, on the CPUs, over the course of the execution, 
+if it is long enough, you'll notice that the usage goes down to only the number 
+of CPUs that you assign the XGboost command.
+
+## Cmd line interface
+
+Unfortunately, unlike python, R doesn't have as easy of a way to set up a 
+cmd line interface to an R package automatically (eg, it isn't straight forward 
+to have you install brentlabModelPerfTesting, and then on the command line do something 
+like `$ brentlabModelPerfTesting perf_test`. With python this is quite simple).  
+
+This likely reflects the major use case of R, which is for interactive data 
+exploration.  
+
+But, there is a cmd line interface to this package -- you just have to 
+extract it.  
+
+There are many ways of doing this. The most recognizable to most users would 
+be:  
+
+- Install the package. To install this 'normally', we'd use 
+`remotes::install_github`. ***But***, this package has a system dependency -- 
+it requires a __linux__ system. 
+
+- If you don't have a __linux__ system, not to fear! you can use singularity or 
+docker.  
+
+I am going to continue this tutorial using `singularity` on a HPC which runs 
+Ubuntu 20.04. However, this is not required -- you can install this through 
+R if you're on linux, or you could use docker.  
+
+# Pull the image
+
+Singularity can pull and build docker images.
+
+```{sh}
+# cd into your scratch space, make a directory for this project if you wish
+mkdir /scratch/<lab>/$USER/xgboost_testing
+cd /scratch/<lab>/$USER/xgboost_testing
+
+# enter an interactive session
+interactive
+
+# load singularity. make sure it is reasonably up to date
+eval $(spack load --sh singularityce@3.8.0)
+
+# pull the image
+singularity pull docker://cmatkhan/brentlabxgboost:latest
+```
+
+Next, we want to extract the cmd line scrpit out of the package. We're going to 
+do this by entering the container interactively. To launch an interactive shell, 
+I use the following script. Copy this into a file -- I call it `singularity_shell.sh` -- 
+and make it executable (eg `chmod +x singularity_shell.sh`)
+
+```{sh}
+#!/bin/bash
+
+img=$1
+
+# replace <LAB> with the 
+# correct lab name!
+# NOTE: change the `-B` paths as appropriate for your use
+singularity shell \
+  -B /scratch/<LAB>/$USER \
+  -B /ref/<LAB>/data \
+  -B "$PWD" \
+  $img
+
+```
+
+Finally, we can enter the container.
+
+```{sh}
+./singularity_shell.sh /path/to/brentlabxgboost_latest.sif
+```
+
+Once you're in the container, launch an R interaction session like this:
+
+```{sh}
+$ R
+```
+
+And once in the R session, do this:
+
+```{r}
+library(brentlabModelPerfTesting)
+
+cmd_line_script = system.file(
+  'xgboost_pref_testing.R', 
+  package = 'brentlabModelPerfTesting')
+
+# name of the file on your machine is arbitrary -- you choose
+# NOTE! this assumes that your $PWD is bound in the container 
+file.copy(cmd_line_script,"./brentlabModelPerfTesting_perf.R")
+```
+
+Exit the singularity container with `cntrl-d`
+
+Now, exit your `interactive` session -- we are going to request another 
+interactive session with more resources in order to do this initial round 
+of interactive testing.
+
+ - __NOTE__: this is a __large__ request on a __shared__ system. The interactive 
+ node is meant for __testing__ prior to submission to the scheduler. ***This is 
+ not your personal computer***. Use any cluster respectfully and sparingly, 
+ and everyone's jobs will run faster. In particular, do not request this 
+ and sit on the resources while you screw around, go to lunch, or whatever 
+ else it is that you're doing that is not using the resources you're hoarding.
+
+Request some number of cpus (12 or less is more than enough for this) and 1 gpu. 
+This is the command I use:
+
+```{sh}
+srun --mem=30G --cpus-per-task=12 --gpus=1 -J perf_testing -p gpu --pty /bin/bash -l
+```
+
+Ensure that singularity is loaded in this session. Also load `htop` -- this 
+isn't strictly necessary as you should be able to use `top` without doing 
+anything. But `htop` is a prettier output:
+
+```{sh}
+eval $(spack load --sh singularityce@3.8.0)
+```
+
+Like above, we're going to use a generalized singularity script. ***But***, 
+this one executes a cmd in a container, rather than launching an interactive 
+session.
+
+I save the following as `singularity_exec_gpu.sh`. Make sure when you 
+create this, you make it executable (`chmod +x singularity_exec_gpu.sh` 
+and launch it with 
+`singularity_exec_gpu.sh /path/to/image.sif "path/to/run_cmd.<ext>"`
+
+```{sh}
+#!/bin/bash
+
+img=$1
+
+run_cmd=$2
+
+# MAKE SURE YOU FILL IN
+# <LAB> YOURSELF!
+singularity exec \
+  --nv \
+  -B /scratch/<LAB>/$USER \
+  -B /ref/<LAB>/data \
+  -B "$PWD" \
+  $img \
+  /bin/bash -c "cd $PWD; $run_cmd"
+```
+
+Now, the fun part. You can do some performance testing using the cmd line 
+script from brentlabModelPerfTesting. First, let's make sure the script will execute
+
+```{sh}
+./scripts/singularity_exec_gpu.sh software/brentlabxgboost_latest.sif "./your_machine/brentlabModelPerfTesting_perf.R --help"
+```
+
+Note that there may be some singularity warnings. You can almost certainly 
+ignore those, though if you know how to address the underlay bind mount 
+warning, I'd be curious.  
+
+Output of the above cmd is:
+
+```{raw}
+Singularity> ./xgboost_testing/brentlabModelPerfTesting/inst/xgboost_pref_testing.R --help
+Usage: ./xgboost_testing/brentlabModelPerfTesting/inst/xgboost_pref_testing.R [options]
+
+
+Options:
+	-h, --help
+		Show this help message and exit
+
+	-v, --verbose
+		Print extra output [default]
+
+	--input=/PATH/TO/INPUT.RDS
+		you do not have to set this to use the brentlabModelPerfTesting package test data. This default data is a 1300 x 81822. default label_colname, see below, is set to default to the appropriate response label for this data. Otherwise, set a path to a rds file of a data.frame where the first column is an expression vector the rest of the columns are snp vectors. rows are samples
+
+	--label_colname=ENSG00000183117_19
+		name of the column in the input data to use as the response vector. Default is  set for the default package input data
+
+	-g, --gpu
+		set --gpu to use the gpu_hist method. otherwise, cpu
+
+	--cpu=5
+		number of threads. Ignored if --gpu is set
+
+	--rounds=10
+		xgboost rounds parameter
+
+	--max_bin=10
+		xgboost max_bin parameter
+
+	--max_depth=10
+		xgboost max_depth parameter
+
+	--num_features=-1
+		number of features to include. Default is -1, which will include all avail
+
+	--out
+		set --out to write a csv with the performance time and memory results
+
+	--prefix=''
+		prefix to append to results. Default is none. if --out is set, set --prefix to some string to add something,  eg param_10_10_2_result.csv
+```
+
+What this means is that to execute this using preconfigured values for the 
+CPU and data that is available in `brentlabModelPerfTesting`, you just need to 
+execute the script.
+
+```{sh}
+./scripts/singularity_exec_gpu.sh software/brentlabxgboost_latest.sif "./relative/path/to/brentlabModelPerfTesting_perf.R" &
+```
+
+The output will be something like:
+
+```{raw}
+Singularity> ./xgboost_testing/brentlabModelPerfTesting/inst/xgboost_pref_testing.R
+  time_sec model_ram_mb total_mem_used_gb
+1 3.263443          2.5                 1
+```
+
+`time_sec` tells you how long __only the modelling step___ (not data loading, 
+etc) takes. The memory output should be taken as ballpark -- it will be better 
+to do actual resource usage testing using this on single models through `SLURM`.  
+
+But, this is sort of boring. Let's increase the number of CPUs and then use 
+`htop` to see what it is doing.
+
+Submit a command like the following -- make sure you use `&` to send it to the 
+background! -- and then launch `htop` (or `top`) to watch how this command 
+actually uses the resources on the node:
+
+```{raw}
+# make sure the & is there to submit to the background
+./scripts/singularity_exec_gpu.sh software/brentlabxgboost_latest.sif "./relative/path/to/brentlabModelPerfTesting_perf.R --cpus 11 --rounds 100" &
+```
+
+It is going to take a minute (probably a bit less) to get going -- just wait. 
+Eventually, you'll see the available CPUs light up as R starts executing your job.  
+
+Hit `q` to quit `htop`. To do the same thing, but using the `GPU` instead, 
+you'll want to significantly increase the number of rounds. The GPU executes 
+_FAST_!
+
+```{sh}
+./scripts/singularity_exec_gpu.sh software/brentlabxgboost_latest.sif "./relative/path/to/brentlabModelPerfTesting_perf.R --gpu --rounds 1000" &
+```
+
+Watch the load on the GPU -- note that on our system (HTCF), for some reason 
+loading `singularity` interferes with `watch`. If you can figure out how to 
+get around that, then yo could do update the view of the GPU every half second:
+
+```{sh}
+watch -n 0.5 nvidia-smi
+```
+
+But, on our system it is likely going to be easier to just manually resubmit 
+this command throughout the execution. I suppose one thing you might to is 
+echo it into a file to keep a trace of the execution, if you're interested.
+
+```{raw}
+nvidia-smi
+```
+
+The `nvidia-smi` output looks like this
+
+```{raw}
++-----------------------------------------------------------------------------+
+| Processes:                                                                  |
+|  GPU   GI   CI        PID   Type   Process name                  GPU Memory |
+|        ID   ID                                                   Usage      |
+|=============================================================================|
+|    0   N/A  N/A    947887      C   /usr/lib/R/bin/exec/R            2932MiB |
++-----------------------------------------------------------------------------+
+[chasem@n097 chasem]$ nvidia-smi
+Wed Feb 15 08:55:20 2023       
++-----------------------------------------------------------------------------+
+| NVIDIA-SMI 525.60.13    Driver Version: 525.60.13    CUDA Version: 12.0     |
+|-------------------------------+----------------------+----------------------+
+| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
+|                               |                      |               MIG M. |
+|===============================+======================+======================|
+|   0  NVIDIA A100 80G...  Off  | 00000000:98:00.0 Off |                    0 |
+| N/A   49C    P0   174W / 300W |   2935MiB / 81920MiB |     96%      Default |
+|                               |                      |             Disabled |
++-------------------------------+----------------------+----------------------+
+
+```
+
+If you toggle between the nvidia-smi and htop (maybe do this in a `screen` 
+session and split your terminal), you'll notice that the `GPU` goes up to 
+100% and makes use of 1 CPU.
+
+## Interactive R session
+
+You can also do this testing in an interactive R session. It is essentially 
+the same:  
+
+- install the package
+- launch an interactive session (probably in Rstudio)
+- `library(brentlabModelPerfTesting)`
+
+There are two functions available right now -- you can read about them 
+[here](), and you can get documentation by doing `?prep_data`. The examples 
+will run -- copy and paste them into your console/script/notebook and execute. 
+This package comes along with the data, both a _very_ small test set, and the 
+full 1300 sample by ~82,000 SNP feature matrix. That is called 
+`gene_data_clean.rds`. All files in [inst](https://github.com/cmatKhan/brentlabModelPerfTesting/tree/main/inst) 
+are available using the method you see above in extracting the cmd line script, 
+or in the function examples where I extract test data.
+
+## IMPORTANT
+
+When using the GPU in an interactive R session, it _does not_ automatically 
+release the resources until you end/restart the session. I don't know why this 
+is, but if you watch `nividia-smi`, you'll notice that your session process 
+just sits on the GPU, even after the execution completes. `gc()` doesn't 
+clear it.  I suspect that it is __far better__ to execute these types of jobs 
+via the cmd line/SBATCH.
+
+# Submission rate testing
+
+I'm just going to put my scripts in here. ***Please update the bind paths, and any other paths*** to point at your own 
+directories/files rather than mine. Feel free to copy the singularity image, of course.
+
+## Typical array job
+
+You can adapt the cmd line instructions above to do tihs differently, but this is how I did the rate testing:  
+
+1. I used this script as a 'template':
+
+```{sh}
+#!/bin/bash
+
+#SBATCH --mem=10G
+#SBATCH --cpus-per-task=8
+#SBATCH --time=10
+#SBATCH --job-name=rate_testing
+#SBATCH --output=rate_testing.out
+
+eval $(spack load --sh singularityce@3.8.0)
+
+singularity_image=$1
+
+run_script=/scratch/mblab/chasem/xgboost_testing/brentlabModelPerfTesting/inst/xgboost_pref_testing.R
+
+# num_trees == rounds
+rounds=10000
+# 256 is default
+max_bin=256
+# default is 6
+max_depth=2
+features=10000
+
+singularity exec \
+  -B /scratch/mblab \
+  -B "$PWD" \
+  $singularity_image \
+  /bin/bash -c "cd $PWD; 
+ $run_script --cpu 7 --rounds $rounds --max_bin $max_bin --max_depth $max_depth --num_features $features"
+```
+
+And adjusted parameters as necessary, eg to run the `gpu` testing, change the `SBATCH` resource requests to this:
+
+```{sh}
+#SBATCH -p gpu
+#SBATCH -n 1
+#SBATCH --gpus=1
+#SBATCH --mem=10G
+#SBATCH --time=10
+#SBATCH --job-name=rate_testing_gpu
+#SBATCH --output=rate_testing_gpu.out
+```
+
+***IMPORTANT*** and remember to set the `--nv` flag in the 
+singularity command, remove the `--cpu` cmd from the brentlabxgboost cmd and add the `--gpu` flag.
+
+I submit these scripts to just run the same model over and over like this:
+
+```{sh}
+sbatch --array=1-1000 /path/to/submit.sh /path/to/image.sif
+```
+
+## Chunked submission
+
+I did this with two scripts -- the first sets up the singularity environment, the second executes a bash loop to execute some number of sequential tasks. Here are the scripts I used:
+
+### Main Process
+
+```{sh}
+#!/bin/bash
+
+#SBATCH -p gpu
+#SBATCH -n 1
+#SBATCH --gpus=1
+#SBATCH --mem=10G
+#SBATCH --time=10
+#SBATCH --job-name=rate_testing_gpu
+#SBATCH --output=rate_testing_gpu.out
+
+eval $(spack load --sh singularityce@3.8.0)
+
+run_script=$1
+
+singularity_image=$2
+
+chunk_size=$3
+
+singularity exec \
+  --nv \
+  -B /scratch/mblab \
+  -B "$PWD" \
+  $singularity_image \
+  /bin/bash -c "cd $PWD; $run_script $chunk_size $SLURM_ARRAY_TASK_ID" 
+```
+
+### Chunk runner
+
+```{sh}
+#!/bin/bash
+
+# this is intended to wrap a single task' in the for loop.
+# the purpose is to control how many 'tasks' get executed 
+# in a single resource requests.
+# for example, if you need to run 1000 tasks, and you want 
+# to run 10 tasks sequentially per resource request, then 
+# you would do:
+#
+# ./chunk_submission.sh 10 <iteration number>
+# 
+# where <iteration number> comes from the parent sbatch 
+# submission.
+
+chunk_size=$1
+iteration_num=$2
+
+run_script=/scratch/mblab/chasem/xgboost_testing/brentlabModelPerfTesting/inst/xgboost_pref_testing.R
+
+# num_trees == rounds
+rounds=10000
+# 256 is default
+max_bin=256
+# default is 6
+max_depth=2
+features=10000
+
+START=$(( ($iteration_num - 1) * $chunk_size + 1));
+STOP=$(( $START + $chunk_size - 1 ));
+
+for line_num in $( seq $START $STOP ); do
+    #echo $line_num 
+    $run_script \
+        --gpu \
+        --rounds $rounds \
+        --max_bin $max_bin \
+        --max_depth $max_depth \
+        --num_features $features
+done
+```
+

@@ -1,0 +1,907 @@
+---
+title: "fully_featured_R_package_development"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{fully_featured_R_package_development}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE
+)
+```
+
+# User setup
+
+1. At an absolute minimum, read Hadley Wickam and Jenny Bryan's 
+R packages' section [The Whole Game](https://r-pkgs.org/whole-game.html).
+
+1. You should also at the very least skim through the rest of that book. You'll 
+use it as a reference frequently and you need to know what is there.
+
+1. After skimming the the Wickam/Bryan R packages book section on documentation, 
+also skim the [Roxygen2 documentation](https://roxygen2.r-lib.org/). Documenting 
+your code is important, and easier done as you write than leaving it to later.  
+
+1. Finally, you need to be aware of the common code style standards. 
+You can choose the break the rules, but you should do this for a reason, not 
+due to ignorance of common conventions. I would suggest looking at either 
+the [tidyverse style guide](https://style.tidyverse.org/) or the [Google R style guide](https://google.github.io/styleguide/Rguide.html). These two are _almost_ 
+exactly the same. For instance, they both reference the other as a source.
+
+# System Requirements:
+
+- Up to date R
+
+- up to date Rstudio
+
+- Up to date `usethis` (the main R development tools meta-package)
+
+- Up to date `renv` (similar to python `venv` in function, 
+  though not seemingly in its conventions or implementation)
+
+- I make a directory called `code` and `projects` in my `$HOME`. I typically 
+put projects which I intend to be packaged, or src code that I pull from the 
+internet, in `code`, and projects which are more strictly focused on analysis 
+and are not going to be formally packaged in `projects`
+
+- Set up your Rstudio environment
+    - Open Rstudio, go to Tools --> Global options
+        - Set your default working directory to a location thaty _you choose_ 
+        as opposed to the default. I set mine to `$HOME/projects`.
+        - Uncheck the boxes -- probably right underneath the default directory 
+        setting box -- that say anything along the lines of "Save session data 
+        on exit" or "save Rdata automatically", ... -- anything like that, turn 
+        it off.
+        - Go to the Appearance tab. I prefer the `Ubuntu mono` __editor font__, 
+        and the `Tomorrow night` __editor theme__. This also isn't necessary, 
+        but I find the inverted color scheme to be _a lot_ easier on my eyes.
+        - You're going to spend a good amount of time in Rstudio -- look around 
+        the rest of the options, eg the window arrangement tab, and see what 
+        you can customize to your own preferences.
+
+Exit Rstudio, and re-launch it -- now if you do `getwd()`, you'll see that 
+Rstudio launches by default in the location of your choice, and looks better.
+
+# Create the package skeleton
+
+Despite preferring `$HOME/projects` be my default launch location, I'm going to 
+make this project -- since it is intended to be packaged software -- in my 
+`$HOME/code` directory. Create the project skeleton with `usethis`.
+
+```{r}
+# note: the name of the package will be the basename of this path.
+# I am putting this in my $HOME/code directory
+usethis::create_package('~/code/brentlabModelPerfTesting')
+```
+
+This will launch a new window where the `current working directory` is set to 
+the path you specified. You can see this in the top right corner of your 
+Rstudio session.  
+
+# Set up a bunch of boilerplate
+
+Next, we're going to set up a bunch of 'boilerplate' package code
+
+## Add a README.md file
+
+- `usethis::use_readme_md()` (or `use_readme_rmd` if you wish. I prefer 
+`md` b/c it is simpler)
+
+### Also add an index.md
+
+- This is for your pkgdown documentation -- the README.md will be displayed on 
+github, but `pkgdown` will use the `index.md` file preferentially for its 
+own homepage -- this way your documentation homepage can be different than 
+your github homepage README. No need to do anything with this now, though you 
+could put a 'hello world' line in (this is just a markdown document) if you 
+want
+
+## Add a license
+
+- Set up the license -- you can read about licenses if you want. I generally 
+use the MIT license, which is intended to be as permissive as possible. This 
+is just considered good practice, and it is easily done: 
+`usethis::use_mit_license()`. You should look at the other licenses available, 
+eg `use_gnu_license()`, if you care about these things.
+
+## Update the initial DESCRIPTION fields
+
+- Update your author, title and description fields in the `DESCRIPTION` file
+
+## Start your virtual environment
+
+- `renv::init()`. Note: [renv](https://rstudio.github.io/renv/) is not 
+nearly as intuitive and simple as python `venv`. It is your responsibility 
+to learn how to use `renv`, and you should expect that you're going to need to 
+spend time doing that. An alternative to `renv` is `packrat`, though 
+Posit/Rstudio seems to have chosen `renv` as the main virtual environment 
+management platform.
+
+## Git/github
+
+***Note***: everything you add to your `.gitignore`, you may also want 
+to add to `.Rbuildignore` and eventually `.dockerignore`
+
+- In your package, in the console, do `usethis::use_git()`
+
+- go to [this repo maintained by Github itself](https://github.com/github/gitignore) 
+and copy/paste (or wget or whatever) this [R project .gitignore template](https://github.com/github/gitignore/blob/main/R.gitignore) into your 
+project `.gitignore` file
+    - It doesn't really matter, but just look through the `.gitignore` now and 
+    remove any duplicates from the items that `usethis` includes by default. 
+    I also at this point add a `tmp` directory in my package workspace,
+    in which I'll store temporary development data, scripts, etc on my local, 
+    but that I don't want version controlled or pushed to github, and add that 
+    to the `.gitignore`.
+    - add a directory, `docs/` to your .gitignore
+    - ***Note***: You can also add this .gitignore template when you create 
+    the git repo through their interface.
+
+- Go to your github account and create a repo. I would name the repo the same 
+name as the package, though this is not required.
+    - Follow the directions on git to add your local repo to github
+
+- You can, but I don't yet make my first push -- I do the following first
+
+### Set up your test environment
+
+- usethis::use_testthat()
+
+- Set up a basic function and test -- there will be more in a later section 
+on how to do this. But, we just want to make sure that all this boiler plate 
+will actually run. Do the following:
+
+- `usethis::use_r('init_function')` this will open a file `R/init_function.R`. 
+With that as your active window, enter `usethis::use_test()`, which will 
+create a test for `init_function`. ***Note***: You don't need to write anything 
+in the `init_function.R` script, and once we have an actual function, we're 
+going to delete this. It just needs to be here so that the test suite runs 
+and passes (the test suite fills a passing test by default)
+
+### Set up pkgdown and gh-pages
+
+- `usethis::use_pkgdown_github_pages()` will create the gh-pages branch on 
+your github repo. This is where you documentation will get built and served 
+by github
+
+- If you didn't already do it, add `docs/` to your `.gitignore` -- you don't 
+watch to VC the `docs/` on your main branch.
+
+### Set up the initial dockerfile
+
+create a file called (by convention) `Dockerfile` and (this is not 
+convention -- must be called this) `.dockerignore`. Add anything to the 
+`.dockerignore` that you dont want included in the dockerfile -- use the 
+`.github`, thoughtful sense, and maybe other peoples' `.dockerignore` files 
+as guides.
+
+__important__: add `Dockerfile` to your `.Rbuildignore`. I'm going to try 
+to note when you should do things like this, but I might miss some. You should 
+be thinking about what should be ignored where, _and_, when you do the 
+package build check (explained in a couple steps from now), forgetting to do 
+things like this will be caught. You can fix it at the `check` step, too.
+
+Here is the one I use. __This should not be used blindly__. This guide is 
+intended for sophisticated users. Read the dockerfile, read the docker 
+docs, go ahead and try this out, but if something isn't working for you, 
+figure it out and debug now. If there is a typo or improvement to this 
+template/example, please submit a pull request.
+
+```{raw}
+# get the base image, the rocker/verse has R, RStudio and pandoc
+FROM r-base
+# Get and install system dependencies
+
+ENV RENV_VERSION 0.16.0
+RUN R -e "install.packages(c('remotes'), repos = c(CRAN = 'https://cran.wustl.edu'))"
+RUN R -e "remotes::install_github('rstudio/renv@${RENV_VERSION}')"
+
+RUN  apt-get update && \
+     apt-get install -y --no-install-recommends \
+      software-properties-common \
+      dirmngr \
+      wget \
+	    build-essential \
+	    libssl-dev \
+	    libxml2-dev \
+      libcurl4-openssl-dev
+
+# Clean up
+RUN apt-get autoremove -y
+
+WORKDIR /project
+COPY renv.lock renv.lock
+COPY renv/ renv/
+
+COPY .Rprofile .Rprofile
+COPY renv/activate.R renv/activate.R
+COPY renv/settings.dcf renv/settings.dcf
+
+# note: update this path as necessary based no the r-base r version
+# and what you make your WORKDIR
+ENV R_LIBS /project/renv/library/R-4.2/x86_64-pc-linux-gnu
+
+RUN R -e "renv::restore()"
+
+WORKDIR /project/src
+COPY . .
+WORKDIR /project
+RUN R -e "renv::activate();renv::install('./src', dependencies = TRUE)"
+RUN rm -rf src
+
+##### METHOD 2 install from github releases using remotes::install_github #####
+#
+# You can skip the renv portion and just use remotes::install_github(..., dependencies=TRUE)
+
+```
+
+Now check that this can actually build the image. Debug if necessary. You could 
+do this from the Rstudio integrated terminal, but I do it in a terminal on 
+my system
+
+```{sh}
+docker build -t <your dockerhub username>/brentlabmodelperftesting .
+```
+
+If it works without error, great! No need to do anything else with this now.
+
+### Set up CI for the build check, documentation construction, and coverage
+
+[this page](https://github.com/r-lib/actions/tree/v2/examples) is 
+linked from `usethis::use_github_actions`, and gives a full list of 
+available pre-configured CI github actions jobs that you can add to your 
+project
+
+- R CMD check and build on multiple operating systems
+  - Read the `?usethis::use_github_actions` documentation. If you don't know 
+  what CI is, go read about it and figure it out. If you don't konw what 
+  `R CMD Check` means, look it up in the Wickam/Bryan R package book. Otherwise, 
+  choose your poison here. `use_github_action_check_standard()` is likely 
+  generally the one you want. In this case, I am only interested in testing 
+  the package on linux, so I'm going to choose 
+  `use_github_action_check_release()`
+
+- Add the R CMD Check badge: `usethis::use_github_actions_badge()`
+
+- `usethis::use_coverage('codecov')` installs `covr` to track test coverage 
+of your code. This will have some output as it installs, and the last bit 
+is a badge that you should add to your README.md and index.md if you wish
+  - After running the cmd above, run `usethis::use_github_action("test-coverage")`
+  so that the coverage report is also run on all pushes/pulls to main
+
+- `usethis::use_github_actions('pkgdown')`: Automatically build the docs 
+on `gh-pages`
+  
+### Adjust the CI to work with `renv`
+
+In general, the default CI will work. But, if you do end up using `renv` to 
+handle some more complicated dependencies (e.g., the precompiled-with-gpu 
+capability linux based `XGBoost` distribution that we'll be using), you'll 
+want to use `renv` rather than `pak` to build your environment in the CI.  
+
+Go to the `.github/workflows` directory. Here is what my files look like when 
+using `renv` -- each gets a similar adjustment.
+
+***Note***: This guide is not for unsophisticated users. Getting the 
+virtual environment, the CI, the Dockerfile, etc work are all tasks that 
+require a level of understanding and ability that is beyond the 
+novice, and probably beyond the intermediate level. If this doesn't run 
+for you, I will always consider a pull request to update and fix the 
+documentation. Otherwise, go figure it out on your own. There is documentation 
+for each one of these items, and there are help community message boards. I am 
+expecting that you don't copy/paste this in blindly, but that you actually 
+look at this, and look at the `usethis` default CI scripts, and understand 
+what has been changed.
+
+#### R CMD Check
+
+```{raw}
+# Workflow derived from https://github.com/r-lib/actions/tree/v2/examples
+# Need help debugging build failures? Start at https://github.com/r-lib/actions#where-to-find-help
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+name: R-CMD-check
+
+jobs:
+  R-CMD-check:
+    runs-on: ${{ matrix.config.os }}
+
+    name: ${{ matrix.config.os }} (${{ matrix.config.r }})
+    
+    # note: I removed the DEV ubuntu release b/c it failed -- I'm not 
+    # interested in this case in ensuring that this package runs on 
+    # a dev branch of ubuntu
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {os: ubuntu-latest,   r: 'release'}
+          - {os: ubuntu-latest,   r: 'oldrel-1'}
+
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+      # this needs to be added 
+      RENV_PATHS_ROOT: ~/.local/share/renv
+
+    steps:
+
+      - uses: actions/checkout@v3
+
+      - uses: r-lib/actions/setup-pandoc@v2
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: ${{ matrix.config.r }}
+          http-user-agent: ${{ matrix.config.http-user-agent }}
+          use-public-rspm: true
+     
+     # setup-r-dependencies is removed !
+     # instead, we're handling dependencies with renv
+      - name: Cache packages
+        uses: actions/cache@v1
+        with:
+          path: ${{ env.RENV_PATHS_ROOT }}
+          key: ${{ runner.os }}-renv-${{ hashFiles('**/renv.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-renv-
+     
+     # note! have to add the rcmdcheck install
+      - name: Restore packages
+        shell: Rscript {0}
+        run: |
+          if (!requireNamespace("renv", quietly = TRUE)) install.packages("renv")
+          renv::restore()
+          renv::install('rcmdcheck')
+
+      - uses: r-lib/actions/check-r-package@v2
+        with:
+          upload-snapshots: true
+
+```
+
+#### pkgdown
+
+```{raw}
+# Workflow derived from https://github.com/r-lib/actions/tree/v2/examples
+# Need help debugging build failures? Start at https://github.com/r-lib/actions#where-to-find-help
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+name: pkgdown
+
+jobs:
+  pkgdown:
+    runs-on: ubuntu-latest
+    # Only restrict concurrency for non-PR jobs
+    concurrency:
+      group: pkgdown-${{ github.event_name != 'pull_request' || github.run_id }}
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      RENV_PATHS_ROOT: ~/.local/share/renv
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: r-lib/actions/setup-pandoc@v2
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - name: Cache packages
+        uses: actions/cache@v1
+        with:
+          path: ${{ env.RENV_PATHS_ROOT }}
+          key: ${{ runner.os }}-renv-${{ hashFiles('**/renv.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-renv-
+
+      - name: Restore packages
+        shell: Rscript {0}
+        run: |
+          if (!requireNamespace("renv", quietly = TRUE)) install.packages("renv")
+          renv::restore()
+          renv::install('.')
+
+      - name: Build site
+        run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)
+        shell: Rscript {0}
+
+      - name: Deploy to GitHub pages 🚀
+        if: github.event_name != 'pull_request'
+        uses: JamesIves/github-pages-deploy-action@v4.4.1
+        with:
+          clean: false
+          branch: gh-pages
+          folder: docs
+```
+
+#### coverage
+
+```{raw}
+# Workflow derived from https://github.com/r-lib/actions/tree/v2/examples
+# Need help debugging build failures? Start at https://github.com/r-lib/actions#where-to-find-help
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+name: test-coverage
+
+jobs:
+  test-coverage:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      RENV_PATHS_ROOT: ~/.local/share/renv
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - name: Cache packages
+        uses: actions/cache@v1
+        with:
+          path: ${{ env.RENV_PATHS_ROOT }}
+          key: ${{ runner.os }}-renv-${{ hashFiles('**/renv.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-renv-
+
+      - name: Restore packages
+        shell: Rscript {0}
+        run: |
+          if (!requireNamespace("renv", quietly = TRUE)) install.packages("renv")
+          renv::restore()
+
+      - name: Test coverage
+        run: |
+          covr::codecov(
+            quiet = FALSE,
+            clean = FALSE,
+            install_path = file.path(Sys.getenv("RUNNER_TEMP"), "package")
+          )
+        shell: Rscript {0}
+
+      - name: Show testthat output
+        if: always()
+        run: |
+          ## --------------------------------------------------------------------
+          find ${{ runner.temp }}/package -name 'testthat.Rout*' -exec cat '{}' \; || true
+        shell: bash
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-test-failures
+          path: ${{ runner.temp }}/package
+
+```
+
+### ***IMPORTANT*** snapshot your local environment
+
+Now you need to update your virtual environment
+
+```{r}
+# shows what you've installed locally for this environment
+renv::status()
+
+# creates the lockfile
+renv::snapshot()
+```
+
+### Check your main branch locally
+
+- Review your `.Rbuildignore` and make sure you have ignored what you need 
+to ignore. Hidden files I believe are ignored by default -- you should 
+check that in the docs -- but, if you made a `tmp` directory, you should 
+add that to your `.Rbuildignore`.
+
+- Go to the "Build" tab in your "Environment" window in Rstudio. Click the 
+"Check" button. This runs `devtools::check()` (comes along with `usethis`),
+which under the hood runs `R CMD check`. This * should * run quickly and 
+have __NO__ errors or warnings, since we haven't installed anything. 
+If there are errors or warnings, you need to stop and fix that.  
+  - If you haven't developed an R package before, or have never used this button, 
+  get used to it. You should be clicking this _frequently_ as you develop, even 
+  though it does take some time to execute.
+  
+- git add, commit, and push to main
+  - ***Note***: make sure you add the hidden files which are not in your 
+  `.gitignore`, such as `.Rprofile`, `.github`, `.Rbuildignore` and `.gitignore`
+
+- go to github, click the "Actions" tab, and make sure that each of these 
+CI actions actually runs. If it doens't run now, with a completely empty 
+package, it will be easier to fix now than it will be later.
+
+## Create a dev branch and develop
+
+You could _not_ do this and just develop and push to `main`. However, it is 
+_really, really_ useful to keep a `main` branch that actually works. For 
+instance, right now, the `renv`, `dockerfile`, `CI` and `pkgdown/gh-pages` all 
+work. You might do something that breaks any one of these, and debugging them 
+is not easy. Being able to revert to a working version, and then slowly 
+re-integrate changes to figure out what is causing the bug is far easier than 
+making a big push to `main`, breaking things, and then rolling back the git 
+history in `main` in my opinion.
+
+- On your local, create a `dev` branch (`git checkout -b dev`). 
+At the very least, you'll do your work in the `dev` branch, and push 
+changes to the remote `dev`. You may choose to use other branches, also. 
+But, importantly, this way you'll be able to do your development in `dev` 
+and choose when to merge it into `main`. It will keep your `main` branch 
+"clean", meaning to the best of your ability, your `main` branch will work. 
+`dev` may, on the otherhand, be unstable as you develop. 
+  - When you're ready to merge from `dev` to `main`, this will be the point 
+  at which you bump the [semantic versioning]() (you may choose to do this 
+  throughout your `dev` branch developments -- lots of different methods here), 
+  rebuild the container(s), and create a 'release' on github. There should be 
+  an updated `CHANGELOG` that goes along with any version bump.
+  - If these instructions aren't immediately clear and obvious, then you need 
+  to stop and go read documentation and watch youtube videos on 
+  ***BASIC*** git/github usage. This is a fundamental skill in programming 
+  today, and has been for some time.
+
+# Writing code
+
+First, if you aren't writing tests along with your code, and especially if you 
+have any preconceived notions about what tests are, then get rid of them. 
+You're probably wrong.  
+
+The point of tests is to create a reproducible debugging environment for you, 
+and others, as you develop the codebase beyond your first function. It allows 
+you, or another developer, to easily _at least_ call your function, set a 
+breakpoint at the first line, and then step through line by line so that 
+instead of relying on your (probably shitty) documentation, the developer 
+can actually see what the code explicitely does.  
+
+The tests also serve as integration checks -- when you add a new function, it 
+_should not_ break an old function. The tests don't guarantee that this is 
+true, but it is a good check to have even if you shouldn't trust blindly that 
+passing a test is a bulletproof guarantee of quality. That is something that 
+you really always need to think about.  
+
+Finally, because you do want a test suite that does provide some assurance 
+that the code is correct and works, improving the tests over time is a 
+lifetime-of-the-software goal -- making the tests now serve as a starting 
+point for something that can be iteratively improved in the future.
+
+## Before writing any code
+
+### Know what you're doing
+
+Before you have started this entire process, you knew what the goals of this 
+specific software is. If you don't, stop and go figure that out first.  
+
+If you know what the purpose of the software is, then you also know what the 
+'basic most fundamental' tasks of this software will be, and what that input 
+data should look like because, as the developer, _you decide what input and 
+output are_. It is not decided by anyone else, or the data. You decide.  
+
+### Get some development data
+
+Before you do anything else, you need to get some data that you can use for 
+development. This should be as minimal as is reasonable to actually write 
+the code you need to write.  
+
+Put the data and put it either in `inst` or `tmp` -- if you put it 
+in `inst`, then you can make this data available in the package when 
+it is distributed. If you put it in `tmp`, then if you added this to 
+your various `ignore` files, you can prevent sharing 
+that data outside of your own local development space. This is useful if you 
+are too lazy to subset down the development data initially and just want to 
+take what is expedient and stick it in initially.
+
+### Know basic style conventions
+
+Read at least 1 of the style guides linked above in [User setup](#user-setup). 
+Follow the style guide there in terms of organizing your code. My preference is 
+many, short code files that are more or less divided by function and/or object 
+and have the same name as the function or class it contains. There are some R 
+conventions surrounding filenames -- eg, `Clases.R`, `methods.R`, `zzz.R` -- you 
+can get this kind of information from the CRAN documentation on packaging, and 
+also from the Hadley/Bryan book.  
+
+***Use a linter*** The package [styler](https://styler.r-lib.org/) is the 
+most commonly used R linter. Install this with
+
+## Set up a test _when you set up a class/function script_
+
+I am going to follow my convention of 1 file to 1 function, both with the same 
+name.
+
+- first, create a script file for the `prep_data` function in the 
+`R/` directory with `usethis::use_r('prep_data')
+  - This will open a file called `R/prep_data.R`.
+  - Now call `usethis::use_test()` which will, if you current active window 
+  is `prep_data.R`, create a test for that file.
+  
+- In the test, at least set up the input. So before writing anything else, 
+in the test, I do this:
+
+```{r}
+
+test_that("prepare_data", {
+  
+  # this is my development data, which I put in the `inst/` directory 
+  # where it will be installed, along with the package, when the package 
+  # is installed. This is how you access that data. Note that part of the 
+  # test suite is doing `library(<your package>)` prior to this -- `usethis` 
+  # handled this for you, so you don't see it in the actual specific test
+  test_data = readRDS(
+    system.file('testing_gene_data.rds',
+                package = 'brentlabXGBoost'))
+  
+  # I haven't written anything in the prep_data function! This will fail 
+  # until I do, which is a good thing.
+  actual = prep_data(test_data, 10)
+  
+  # just placeholder for now
+  expected = head(test_data)
+  
+  expect_identical(expected, actual)
+})
+
+```
+
+In the function, I might now write something like this -- Note that I 
+start writing the documentation now! Also, to handle importing packages, 
+we are using `roxygen2` -- that is what the `@importFrom` statement is 
+doing. You can read more about this in the Wickam/Bryan Packaging R book, 
+and in the `roxygen2` docs. If you don't know how to manage dependencies this 
+way, then you need to stop and go read about it now.
+
+```{r}
+
+#' prep data for the testing functions
+#'
+#' @importFrom assertthat assert_that
+#'
+#' @param gene_data a data.frame where the label_vector column is the response
+#'   and the rest of the columns are predictors
+#' @param feature_num is the number of feature_num to select from the data. must be
+#'   $>=$ 1.If exceeds ncol, ncol-1 is used (1 col removed as the label).
+#'   Default is to use all columns
+#' @param label_vector name of the column to use as the response
+#'
+#' @export
+prep_data = function(
+    gene_data,
+    feature_num = Inf,
+    label_vector = 'ensg00000183117_19'){
+  
+  assertthat::assert_that(is.numeric(feature_num))
+
+  assertthat::assert_that((label_vector) %in% colnames(gene_data))
+  
+  # return this out -- this is just a placeholder for development
+  head(gene_data)
+}
+```
+
+And run the test via that same panel from which you ran the `check`. Maybe it 
+works, maybe it doesn't, but at least now you have a framework in which you can 
+make your developing reproducible.
+
+## Interactive development
+
+In python, you can use `pip install -e .` to install a development package 
+from its `src` directory (the one where you're working) so that any changes 
+you make are immediately present in your `PYTHONPATH`. In R, you can do 
+something similar with `devtools::load_all()`. ***But*** this needs to be 
+re-done each time you make a change. Do this now.
+
+### Set a breakpoint
+
+- __In `prep_data`, set a breakpoint__. Maybe set it on the first line, so that 
+no code is executed inside of hte function, and you stop in an interactive 
+environment in which you can execute the code/write/etc in the console with 
+the actual function data.
+
+### Installing dependencies
+
+To install dependencies, we're going to use `usethis::use_package`. Read the 
+docs on this -- you will be able to decide what section the package gets 
+added to (`Imports`, `Suggests`, `Depends`). I typically set 
+`min_version = TRUE`, but put thought into this, generally. ***Important*** 
+remember to update your virtual environment frequently -- to see the changes, 
+use `renv::status()`. To update the lockfile, do `renv::snapshot()`. Be aware 
+of what you're doing -- don't fill your environment with a bunch of junk 
+(though, if you do this, `renv` does have some functions to help clean 
+things up).
+
+#### Installing from a remote other than CRAN or Bioconductor
+
+For example, I want this package to depend on a pre-compiled version of 
+XGBoost which is distributed by XGBoost, but not on CRAN.  
+
+this is how this is done:
+
+- First, based on the [Remotes](https://remotes.r-lib.org/articles/dependencies.html#other-sources) documentation, add the following to the 
+`DESCRIPTION` file:
+
+```{raw}
+Remotes: 
+  xgboost=url::https://github.com/dmlc/xgboost/releases/download/v1.7.2/xgboost_r_gpu_linux_1.7.2.tar.gz
+```
+
+- Then, use `renv` to install, in this case, `xgboost` -- it will respect the 
+`Remotes` field in DESCRIPTION. 
+
+- Next, use `usethis` to add `xgboost`, in this case, to the DESCRIPTION 
+`Imports`: `usethis::use_package('xgboost', min_version=TRUE)`
+
+- Update the virtual environment: `renv::status()` -- just take a look at what 
+changed, make sure you agree. Then `renv::snapshot()`.
+
+As a side note, this is what the `renv.lock` file entry for xgboost looks like:
+
+```{json}
+...
+    "xgboost": {
+      "Package": "xgboost",
+      "Version": "1.7.2.1",
+      "Source": "URL",
+      "RemoteType": "url",
+      "RemoteUrl": "https://github.com/dmlc/xgboost/releases/download/v1.7.2/xgboost_r_gpu_linux_1.7.2.tar.gz",
+      "Hash": "d6328ccd7dbb29c1c1c285b045083e02",
+      "Requirements": [
+        "Matrix",
+        "data.table",
+        "jsonlite"
+      ]
+    }, 
+...
+```
+
+### Iterate and develop
+
+write, set a breakpoint, execute to the breakpoint, write, __and critically__ 
+simultaneously update the test
+
+### Result
+
+By doing this process, I end up with a test that looks like this:
+
+```{r}
+test_that("prepare_data", {
+  test_data = readRDS(
+    system.file('testing_gene_data.rds',
+                package = 'brentlabXGBoost'))
+
+  suppressWarnings({prepped_data_subset = prep_data(test_data, 10)})
+
+  expect_equal(dim(prepped_data_subset$train), c(20*.8,10))
+
+  suppressWarnings({prepped_data_default = prep_data(test_data)})
+
+  expect_equal(dim(prepped_data_default$train), c(20*.8,19))
+})
+```
+
+And a function that looks like this:
+
+```{r}
+
+#' prep data for the testing functions
+#'
+#' @importFrom assertthat assert_that
+#' @importFrom rsample initial_split training testing
+#' @importFrom xgboost xgb.DMatrix
+#' @importFrom dplyr select all_of
+#' @import futile.logger
+#'
+#' @param gene_data a data.frame where the label_vector column is the response
+#'   and the rest of the columns are predictors
+#' @param feature_num is the number of feature_num to select from the data. must be
+#'   $>=$ 1.If exceeds ncol, ncol-1 is used (1 col removed as the label).
+#'   Default is to use all columns
+#' @param label_vector name of the column to use as the response
+#'
+#' @return a list with xgboost data matrix objects, slots dtrain, dtest and wl
+#'   see the xgboost docs on wl. dtrain is the trainin data to
+#'
+#' @examples
+#'   test_data = readRDS(
+#'       system.file('testing_gene_data.rds',
+#'       package = 'brentlabXGBoost'))
+#'   # note: suppressed warnings used here b/c the test data is too
+#'   # small to stratify. Typically, do not use supressWarnings.
+#'   suppressWarnings({prepped_data_subset = brentlabXGBoost::prep_data(test_data, 10)})
+#'
+#'   names(prepped_data_subset)
+#'
+#' @export
+prep_data = function(
+    gene_data,
+    feature_num = Inf,
+    label_vector = 'ensg00000183117_19'){
+
+  assertthat::assert_that(is.numeric(feature_num))
+
+  assertthat::assert_that((label_vector) %in% colnames(gene_data))
+
+  gene_data_split <- rsample::initial_split(
+    gene_data,
+    prop = 0.8,
+    strata = rlang::sym(label_vector)
+  )
+
+  feature_num = max(1,feature_num)
+
+  flog.info(paste0('creating train test data with ',
+            as.character(min(ncol(gene_data)-1, feature_num)),
+            ' predictor variables'))
+
+  # prepare the input data -- subset number of feature_num to
+  # test effect of feature_num on runtime/performance
+  train_dat = as.matrix(rsample::training(gene_data_split) %>%
+                          dplyr::select(-all_of(label_vector)) %>%
+                          .[,1:min(ncol(gene_data)-1, feature_num)])
+
+  test_dat = as.matrix(rsample::testing(gene_data_split) %>%
+                         dplyr::select(-all_of(label_vector))) %>%
+    .[,1:min(ncol(gene_data_split)-1,feature_num)]
+
+  # common for all test iterations -- not testing effect of number of samples
+  train_labels = training(gene_data_split)[[label_vector]]
+
+  test_labels = testing(gene_data_split)[[label_vector]]
+
+  # return data for xgboost input
+  list(
+    train = xgboost::xgb.DMatrix(train_dat, label = train_labels),
+    test = xgboost::xgb.DMatrix(test_dat, label=test_labels)
+  )
+}
+
+```
+
+### Check locally
+
+- In the same tab in the Rstudio pane where you did the `check`, 
+run the `Test` tab -- make sure those pass first. Debug if necessary.
+
+- Check your documentation format with `roxygen2::roxygenise()`. 
+Debug if necessary.
+
+- Then, run the `check` this locally (from the Environment/Build 
+pane in Rstudio), as we did before with just the boilerplate code. Debug 
+if necessary.
+
+### Push to github
+
+Where you push this is your choice -- if your on the `dev` branch, push to 
+`dev`. If your on `main`, push to `main`. Maybe merge `dev` to `main` 
+locally, or you could push to `dev` and issue a pull request to `main`. On 
+github, the CI will run -- make sure that passes. If it doesn't debug.
+
+# Conclusion
+
+From this point, you can look at the repo and see what I've done beyond this -- 
+more or less just adding a single additional function, and writing the 
+cmd line interface (which is in `inst`). You should see the vignette 
+`Using_Package_Data` for some comments on including data in the project. See 
+`Usage` for instrutions on using both the cmd line script and the container. 
+See performance_testing_xgboost_on_htcf for results of performance testing 
+by varying the parameters which affect runtime/memory on both CPUs (various numbers of cpus) the GPU. This also examines the scheduling rate on both CPU and GPU batch 
+runs on HTCF.

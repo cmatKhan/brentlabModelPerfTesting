@@ -13,6 +13,22 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
 URL: https://cmatkhan.github.io/brentlabModelPerfTesting/
 Suggests: 
-    covr,
+    covr (>= 3.6.1),
+    ggplot2 (>= 3.4.1),
+    knitr (>= 1.42),
+    rmarkdown (>= 2.20),
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
+Remotes: 
+  xgboost=url::https://github.com/dmlc/xgboost/releases/download/v1.7.2/xgboost_r_gpu_linux_1.7.2.tar.gz
+Imports: 
+    assertthat (>= 0.2.1),
+    dplyr (>= 1.1.0),
+    futile.logger (>= 1.4.3),
+    magrittr (>= 2.0.3),
+    peakRAM (>= 1.0.2),
+    pryr (>= 0.1.6),
+    rlang (>= 1.0.6),
+    rsample (>= 1.1.1),
+    xgboost (>= 1.7.2.1)
+VignetteBuilder: knitr
