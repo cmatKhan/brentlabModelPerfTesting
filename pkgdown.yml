@@ -1,0 +1,13 @@
+pandoc: 2.19.2
+pkgdown: 2.0.7
+pkgdown_sha: ~
+articles:
+  Usage: Usage.html
+  Using_Package_Data: Using_Package_Data.html
+  fully_featured_R_package_development: fully_featured_R_package_development.html
+  performance_testing_xgboost_on_htcf: performance_testing_xgboost_on_htcf.html
+last_built: 2023-02-16T18:27Z
+urls:
+  reference: https://cmatkhan.github.io/brentlabModelPerfTesting/reference
+  article: https://cmatkhan.github.io/brentlabModelPerfTesting/articles
+
