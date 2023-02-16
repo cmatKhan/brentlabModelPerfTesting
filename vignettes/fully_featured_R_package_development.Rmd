@@ -122,6 +122,15 @@ spend time doing that. An alternative to `renv` is `packrat`, though
 Posit/Rstudio seems to have chosen `renv` as the main virtual environment 
 management platform.
 
+- Frequently check `renv::status()` and frequently `renv::snapshot()` and 
+if necessarily `renv::install('some package')`. Note that this happens 
+_in addition to_ using 
+`usethis::use_package('package', type='<type>', min_version = <TRUE/<specific_version>>)`. 
+It is critical that you figure out the difference between these two -- read the 
+documentation first, play around with it on your own, and if you have questions, 
+post a question on the appropriate boards (see the documentation for `usethis` 
+and `renv`. It tells you where to ask questions).
+
 ## Git/github
 
 ***Note***: everything you add to your `.gitignore`, you may also want 
@@ -171,6 +180,16 @@ by github
 
 - If you didn't already do it, add `docs/` to your `.gitignore` -- you don't 
 watch to VC the `docs/` on your main branch.
+
+- ***IMPORTANT*** In order to allow the github action to update the gh-pages 
+branch, you need to change a branch security setting on github. On the 
+github repo page, do the following:
+
+Go to:
+
+> Settings --> Actions --> general --> Workflow permissions
+
+and set the permissions to 'Read and Write'
 
 ### Set up the initial dockerfile
 
